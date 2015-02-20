@@ -93,7 +93,7 @@ if ($ARGV[0] eq "config") {
 
   print "multigraph enhanceio_cachehits\n";
   print "graph_title EnhanceIO read/write cache hit percentage\n";
-  print "graph_vlabel read (-) /write (+) hit percentage per \${graph_period}\n";
+  print "graph_vlabel read (-) /write (+) hit percentage\n";
   print "graph_category enhanceio\n";
   print "graph_info This graph shows read/write cache hits.\n";
   foreach my $cache (sort keys %{ $caches }) {
@@ -105,7 +105,51 @@ if ($ARGV[0] eq "config") {
     print $cache."_wr_hitpct.draw AREASTACK\n";
     print $cache."_wr_hitpct.negative ".$cache."_rd_hitpct\n";
   }
+  print "\n";
 
+  print "multigraph enhanceio_hdd_rw\n";
+  print "graph_title EnhanceIO HDD reads/writes\n";
+  print "graph_vlabel Disk reads (-) /writes (+) per \${graph_period}\n";
+  print "graph_category enhanceio\n";
+  print "graph_info This graph shows HDD reads/writes.\n";
+  foreach my $cache (sort keys %{ $caches }) {
+    print $cache."_hdd_rd.label none\n";
+    print $cache."_hdd_rd.type COUNTER\n";
+    print $cache."_hdd_rd.graph no\n";
+    print $cache."_hdd_wr.label ".$cache."\n";
+    print $cache."_hdd_wr.type COUNTER\n";
+    print $cache."_hdd_wr.draw AREASTACK\n";
+    print $cache."_hdd_wr.negative ".$cache."_hdd_rd\n";
+  }
+  print "\n";
+
+  print "multigraph enhanceio_ssd_rw\n";
+  print "graph_title EnhanceIO SSD reads/writes\n";
+  print "graph_vlabel SSD reads (-) /writes (+) per \${graph_period}\n";
+  print "graph_category enhanceio\n";
+  print "graph_info This graph shows SSD reads/writes.\n";
+  foreach my $cache (sort keys %{ $caches }) {
+    print $cache."_ssd_rd.label none\n";
+    print $cache."_ssd_rd.type COUNTER\n";
+    print $cache."_ssd_rd.graph no\n";
+    print $cache."_ssd_wr.label ".$cache."\n";
+    print $cache."_ssd_wr.type COUNTER\n";
+    print $cache."_ssd_wr.draw AREASTACK\n";
+    print $cache."_ssd_wr.negative ".$cache."_ssd_rd\n";
+  }
+  print "\n";
+
+  print "multigraph enhanceio_dirty\n";
+  print "graph_title EnhanceIO number of dirty blocks\n";
+  print "graph_args --base 1000\n";
+  print "graph_vlabel number of dirty blocks\n";
+  print "graph_category enhanceio\n";
+  print "graph_info This graph shows the number of dirty blocks in the cache.\n";
+  foreach my $cache (sort keys %{ $caches }) {
+    print $cache."_nr_dirty.label ".$cache."\n";
+    print $cache."_nr_dirty.type GAUGE\n";
+    print $cache."_nr_dirty.draw STACK\n";
+  }
   exit 0;
 }
 
@@ -122,5 +166,24 @@ foreach my $cache (sort keys %{ $caches }) {
   print $cache."_wr_hitpct.value ".$caches->{$cache}->{write_hit_pct}."\n";
 }
 print "\n";
+
+print "multigraph enhanceio_hdd_rw\n";
+foreach my $cache (sort keys %{ $caches }) {
+  print $cache."_hdd_rd.value ".$caches->{$cache}->{disk_reads}."\n";
+  print $cache."_hdd_wr.value ".$caches->{$cache}->{disk_writes}."\n";
+}
+print "\n";
+
+print "multigraph enhanceio_ssd_rw\n";
+foreach my $cache (sort keys %{ $caches }) {
+  print $cache."_ssd_rd.value ".$caches->{$cache}->{ssd_reads}."\n";
+  print $cache."_ssd_wr.value ".$caches->{$cache}->{ssd_writes}."\n";
+}
+print "\n";
+
+print "multigraph enhanceio_dirty\n";
+foreach my $cache (sort keys %{ $caches }) {
+  print $cache."_nr_dirty.value ".$caches->{$cache}->{nr_dirty}."\n";
+}
 
 exit 0;
