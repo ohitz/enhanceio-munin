@@ -1,0 +1,126 @@
+#! /usr/bin/perl
+
+# -*- perl -*-
+
+=head1 NAME
+
+enhanceio - Munin multigraph plugin to monitor EnhanceIO values
+
+=head1 APPLICABLE SYSTEMS
+
+Linux systems with EnhanceIO installed. The plugin checks for the
+C</proc/enhanceio> directory.
+
+=head1 CONFIGURATION
+
+No configuration required.
+
+=head1 INTERPRETATION
+
+To be documented...
+
+=head1 MAGIC MARKERS
+
+  #%# family=auto
+  #%# capabilities=autoconf
+
+=head1 AUTHOR
+
+Oliver Hitz <oliver@net-track.ch>
+
+=head1 LICENSE
+
+GPLv2
+
+=cut
+
+use strict;
+use Munin::Plugin;
+
+my $eiodir = "/proc/enhanceio";
+
+# autoconf - quite simple
+if ($ARGV[0] eq "autoconf") {
+  if (-d $eiodir) {
+    print "yes\n";
+  } else {
+    print "no ($eiodir not found)\n";
+  }
+  exit 0;
+}
+
+my $caches = {};
+
+opendir(DIR, $eiodir);
+while (my $entry = readdir(DIR)) {
+  if ($entry eq "." ||
+      $entry eq ".." ||
+      $entry eq "version") {
+    next;
+  }
+
+  if (open(STATS, "$eiodir/$entry/stats")) {
+    my $cache = {};
+
+    while (my $l = <STATS>) {
+      if ($l =~ /^(\S+)\s+(\d+)/) {
+        $cache->{$1} = $2;
+      }
+    }
+    close(STATS);
+
+    $caches->{$entry} = $cache;
+  }
+}
+
+if ($ARGV[0] eq "config") {
+  print "multigraph enhanceio_rw\n";
+  print "graph_title EnhanceIO reads/writes\n";
+  print "graph_args --base 1000\n";
+  print "graph_vlabel blocks per \${graph_period} read (-) / write (+)\n";
+  print "graph_category enhanceio\n";
+  print "graph_info This graph shows reads/writes for each configured cache.\n";
+  foreach my $cache (sort keys %{ $caches }) {
+    print $cache."_rd.label none\n";
+    print $cache."_rd.type COUNTER\n";
+    print $cache."_rd.graph no\n";
+    print $cache."_wr.label ".$cache."\n";
+    print $cache."_wr.type COUNTER\n";
+    print $cache."_wr.draw AREASTACK\n";
+    print $cache."_wr.negative ".$cache."_rd\n";
+  }
+  print "\n";
+
+  print "multigraph enhanceio_cachehits\n";
+  print "graph_title EnhanceIO read/write cache hit percentage\n";
+  print "graph_vlabel read (-) /write (+) hit percentage per \${graph_period}\n";
+  print "graph_category enhanceio\n";
+  print "graph_info This graph shows read/write cache hits.\n";
+  foreach my $cache (sort keys %{ $caches }) {
+    print $cache."_rd_hitpct.label none\n";
+    print $cache."_rd_hitpct.type GAUGE\n";
+    print $cache."_rd_hitpct.graph no\n";
+    print $cache."_wr_hitpct.label ".$cache."\n";
+    print $cache."_wr_hitpct.type GAUGE\n";
+    print $cache."_wr_hitpct.draw AREASTACK\n";
+    print $cache."_wr_hitpct.negative ".$cache."_rd_hitpct\n";
+  }
+
+  exit 0;
+}
+
+print "multigraph enhanceio_rw\n";
+foreach my $cache (sort keys %{ $caches }) {
+  print $cache."_rd.value ".$caches->{$cache}->{reads}."\n";
+  print $cache."_wr.value ".$caches->{$cache}->{writes}."\n";
+}
+print "\n";
+
+print "multigraph enhanceio_cachehits\n";
+foreach my $cache (sort keys %{ $caches }) {
+  print $cache."_rd_hitpct.value ".$caches->{$cache}->{read_hit_pct}."\n";
+  print $cache."_wr_hitpct.value ".$caches->{$cache}->{write_hit_pct}."\n";
+}
+print "\n";
+
+exit 0;
